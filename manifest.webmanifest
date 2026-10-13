@@ -1,0 +1,16 @@
+{
+  "name": "Forkcast",
+  "short_name": "Forkcast",
+  "description": "Plan the week's family dinners and keep the grocery list in one place.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#140f17",
+  "theme_color": "#140f17",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

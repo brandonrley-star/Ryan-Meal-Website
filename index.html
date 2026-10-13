@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Forkcast</title>
+<meta name="description" content="Plan the week's family dinners and keep the grocery list in one place.">
+<meta name="theme-color" content="#140f17">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Forkcast">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400..700&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="app" id="app">
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="15" fill="var(--tomato)"/>
+        <path d="M11 8v7a3 3 0 0 0 2 2.8V25M15 8v6M11 8v6M20.5 8c-1.8 0-2.8 2.4-2.8 5.2 0 2 1 3.3 2.3 3.6V25" fill="none" stroke="var(--on-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="brand-text">
+        <span class="brand-name">Forkcast</span>
+        <span class="brand-sub" id="household-label">Our kitchen</span>
+      </div>
+    </div>
+    <button class="icon-btn" type="button" data-action="open-settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10" /><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
+    </button>
+  </header>
+
+  <main class="views">
+    <section class="view" id="view-today" aria-label="Tonight"></section>
+    <section class="view" id="view-plan" aria-label="Week plan" hidden></section>
+    <section class="view" id="view-grocery" aria-label="Grocery list" hidden></section>
+    <section class="view" id="view-meals" aria-label="Meal library" hidden></section>
+  </main>
+
+  <nav class="tabbar" aria-label="Sections">
+    <button type="button" class="tab" data-tab="today" aria-current="page">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/></svg>
+      <span>Tonight</span>
+    </button>
+    <button type="button" class="tab" data-tab="plan">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>
+      <span>Week</span>
+    </button>
+    <button type="button" class="tab" data-tab="grocery">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2.5l2.2 11h10.8L21 7.5H7"/><circle cx="9.5" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/></svg>
+      <span>Groceries</span>
+      <b class="tab-badge" id="grocery-badge" hidden></b>
+    </button>
+    <button type="button" class="tab" data-tab="meals">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6"/></svg>
+      <span>Meals</span>
+    </button>
+  </nav>
+</div>
+
+<div class="sheet-root" id="sheet-root" hidden>
+  <div class="backdrop" data-action="close-sheet"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" id="sheet">
+    <div class="grabber" aria-hidden="true"></div>
+    <div class="sheet-body" id="sheet-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="js/seed.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
