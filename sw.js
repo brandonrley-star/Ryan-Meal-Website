@@ -1,5 +1,5 @@
 /* Forkcast offline cache. Bump VERSION when shipping changes. */
-const VERSION = 'forkcast-v1';
+const VERSION = 'forkcast-v2';
 const ASSETS = [
   './',
   'index.html',

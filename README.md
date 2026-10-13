@@ -9,6 +9,11 @@ A phone-first family dinner planner and grocery list. Plan the week's dinners, s
 - **Groceries**: a receipt-style list grouped by aisle. Planned dinners add their ingredients and duplicates are combined (2 lb + 1.5 lb ground beef becomes 3.5 lb). One-tap staples include baby and household items. Check items off as they go in the cart and share the list by text.
 - **Meals**: 16 family dinners to start, tagged Toddler-approved, High protein, Slow cooker, and more. Heart favorites, add your own, and edit anything.
 - **Spin**: dinner roulette with filters for favorites, quick meals, toddler-approved, or high protein.
+- **Prep and defrost reminders**: each meal can say what to move from the freezer and how many nights ahead. Those reminders, plus morning-of steps and any you add, show on Tonight and on each day in Week.
+
+## Weekly Dinner Plan (Oct 12, 2026)
+
+`plans/weekly-dinner-plan-2026-10-12.pdf` is loaded into the app once (see `planPackages` in `js/seed.js`): the five weeknight dinners with recipes, hands-on times, and appliances; the defrost schedule; the Sunday batch prep; the ButcherBox-first grocery list; and the five ideas for future weeks (filter Meals by **To try**). The Week view links to the original PDF. To add a future plan, add another entry to `planPackages`.
 
 Everything is saved on the device (localStorage). Settings has backup export and import for moving data to another phone.
 
@@ -33,6 +38,7 @@ It launches full screen like an app and works offline in the store.
 | --- | --- |
 | `index.html` | App shell and tab bar |
 | `css/styles.css` | Design tokens (dark and light), components |
-| `js/seed.js` | Starter meals, staples, aisles, tags |
+| `js/seed.js` | Starter meals, staples, aisles, tags, dated plans |
+| `plans/` | Original plan PDFs |
 | `js/app.js` | State, rendering, interactions |
 | `sw.js`, `manifest.webmanifest`, `icons/` | Home Screen install and offline support |

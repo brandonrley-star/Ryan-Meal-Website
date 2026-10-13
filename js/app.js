@@ -64,6 +64,9 @@
       plan: {},        // 'YYYY-MM-DD' -> { mealId, cooked }
       groceries: [],   // { id, name, qty, aisle, done, sources[] }
       built: [],       // plan entries already sent to the list: 'YYYY-MM-DD|mealId'
+      tasks: [],       // prep reminders you add: { id, date, when: 'morning'|'evening', text }
+      taskDone: {},    // task id -> true (covers added and automatic defrost/prep tasks)
+      imported: [],    // plan packages already loaded, e.g. the Weekly Dinner Plan PDF
       sample: false,
       settings: { household: '', weekStart: 0, theme: 'system' }
     };
@@ -77,7 +80,11 @@
     if (!Array.isArray(out.groceries)) out.groceries = [];
     if (!Array.isArray(out.built)) out.built = [];
     if (!out.plan || typeof out.plan !== 'object') out.plan = {};
+    if (!Array.isArray(out.tasks)) out.tasks = [];
+    if (!Array.isArray(out.imported)) out.imported = [];
+    if (!out.taskDone || typeof out.taskDone !== 'object') out.taskDone = {};
     out.meals.forEach(m => {
+      m.steps = Array.isArray(m.steps) ? m.steps : [];
       m.tags = Array.isArray(m.tags) ? m.tags : [];
       m.ingredients = Array.isArray(m.ingredients) ? m.ingredients : [];
       m.minutes = Number(m.minutes) || 0;
@@ -113,14 +120,64 @@
     pickerQuery: ''
   };
 
-  function seedSampleWeek() {
-    const t = today();
-    const sample = [['m-fajitas', 0], ['m-salmon', 1], ['m-pizza', 2], ['leftovers', 3], ['m-chili', 4], ['m-breakfast', 5]];
-    sample.forEach(([id, off]) => { state.plan[keyOf(addDays(t, off))] = { mealId: id, cooked: false }; });
-    sendPlanToList(Object.keys(state.plan));
-    [['Milk', 'dairy'], ['Diapers', 'baby'], ['Wipes', 'baby'], ['Bananas', 'produce']].forEach(([name, aisle]) => addGrocery({ name, aisle }));
-    state.sample = true;
+  // Load each dated plan (like the Weekly Dinner Plan PDF) once. It replaces the old sample week,
+  // fills only empty nights otherwise, and brings its grocery list when the list is empty.
+  function applyImports() {
+    (SEED.planPackages || []).forEach(pkg => {
+      if (state.imported.includes(pkg.id)) return;
+      pkg.meals.forEach(m => { if (!state.meals.some(x => x.id === m.id)) state.meals.push(clone(m)); });
+      if (state.sample) { state.plan = {}; state.groceries = []; state.built = []; state.sample = false; }
+      const added = [];
+      Object.keys(pkg.plan).forEach(k => {
+        if (!state.plan[k]) { state.plan[k] = { mealId: pkg.plan[k], cooked: false }; added.push(k); }
+      });
+      pkg.tasks.forEach((t, i) => {
+        const id = `${pkg.id}-${i}`;
+        if (!state.tasks.some(x => x.id === id)) state.tasks.push({ id, date: t.date, when: t.when, text: t.text });
+      });
+      if (!state.groceries.length) {
+        pkg.groceries.forEach(([name, qty, aisle, mealId]) => {
+          state.groceries.push({ id: uid(), name, qty, aisle, done: false, sources: mealId ? [mealId] : [] });
+        });
+        added.forEach(k => state.built.push(`${k}|${state.plan[k].mealId}`));
+      }
+      state.imported.push(pkg.id);
+    });
   }
+
+  /* ---------- Prep and defrost reminders ---------- */
+  // A day's tasks: ones you added, the morning step for that night's dinner, and
+  // "move the meat to the fridge" for any dinner whose thaw lead time lands on this evening.
+  function tasksFor(key) {
+    const out = state.tasks.filter(t => t.date === key).map(t => ({ ...t, kind: 'custom' }));
+    const e = entryFor(key);
+    if (e && e.meal.morning) out.push({ id: `am|${key}|${e.mealId}`, when: 'morning', kind: 'prep', text: e.meal.morning, sub: `For ${e.meal.name}` });
+    for (let lead = 1; lead <= 3; lead++) {
+      const k2 = keyOf(addDays(fromKey(key), lead));
+      const e2 = entryFor(k2);
+      if (e2 && e2.meal.thaw && (Number(e2.meal.thawLead) || 1) === lead) {
+        const d2 = fromKey(k2);
+        out.push({ id: `thaw|${k2}|${e2.mealId}`, when: 'evening', kind: 'thaw', text: `Move ${e2.meal.thaw} to the fridge`, sub: `For ${DOW_LONG[d2.getDay()]}: ${e2.meal.name}` });
+      }
+    }
+    return out.sort((a, b) => (a.when === b.when ? 0 : a.when === 'morning' ? -1 : 1));
+  }
+
+  const isTaskDone = t => !!state.taskDone[t.id];
+
+  function taskRow(t, { removable = false } = {}) {
+    const done = isTaskDone(t);
+    const label = t.kind === 'thaw' ? 'Defrost' : t.when === 'morning' ? 'Morning' : 'Evening';
+    return `<div class="task ${done ? 'is-done' : ''} kind-${t.kind}">
+      <button class="task-main" type="button" data-action="toggle-task" data-id="${esc(t.id)}" aria-pressed="${done}">
+        <span class="check">${ICON.check}</span>
+        <span class="task-text"><span class="task-when">${label}</span><span class="txt">${esc(t.text)}</span>${t.sub ? `<span class="task-sub">${esc(t.sub)}</span>` : ''}</span>
+      </button>
+      ${removable && t.kind === 'custom' ? `<button class="item-del" type="button" data-action="del-task" data-id="${esc(t.id)}" aria-label="Remove reminder">${ICON.x}</button>` : ''}
+    </div>`;
+  }
+
+  const defrostTip = () => `<details class="tip-box"><summary>Forgot to defrost?</summary><p>${esc(SEED.defrostTip.replace(/^Forgot to defrost\? /, ''))}</p></details>`;
 
   /* ---------- Meals ---------- */
   const mealById = id => SPECIALS[id] || state.meals.find(m => m.id === id) || null;
@@ -175,7 +232,7 @@
 
   /* ---------- Groceries ---------- */
   const UNIT = '(?:lbs?|oz|g|kg|ml|l|cups?|tbsp|tsp|cans?|cartons?|bags?|packs?|packets?|jars?|bottles?|heads?|bunch(?:es)?|box(?:es)?|tubs?|stalks?|ears?|pints?|dozen|cloves?|sticks?|blocks?|wedges?|slices?|loaf|loaves|qts?|quarts?|gal(?:lons?)?|knobs?|balls?|containers?)';
-  const QTY_RE = new RegExp(`^(\\d+(?:[.\\/]\\d+)?(?:\\s*-\\s*\\d+)?(?:\\s*${UNIT}\\b\\.?)?)\\s+(.+)$`, 'i');
+  const QTY_RE = new RegExp(`^((?:\\d*[½⅓⅔¼¾⅛]|\\d+(?:[.\\/]\\d+)?)(?:\\s*-\\s*\\d+)?(?:\\s*${UNIT}\\b\\.?)?)\\s+(.+)$`, 'i');
 
   function parseLine(line) {
     const s = line.trim().replace(/^[-*•]\s*/, '');
@@ -292,9 +349,10 @@
 
   const mealMeta = meal => {
     if (meal.special) return meal.id === 'leftovers' ? 'No cooking tonight' : 'Night off';
-    const bits = [`${meal.minutes} min`];
+    const bits = [meal.handsOn || `${meal.minutes} min`];
     const tag = meal.tags.find(t => t !== 'quick');
-    if (tag) bits.push(tagLabel(tag));
+    if (meal.appliance) bits.push(meal.appliance);
+    else if (tag) bits.push(tagLabel(tag));
     return bits.join(' · ');
   };
 
@@ -353,18 +411,24 @@
     const planned = days.filter(d => entryFor(keyOf(d))).length;
     const todo = state.groceries.filter(g => !g.done).length;
     const inCart = state.groceries.length - todo;
+    const prep = tasksFor(key);
+    const prepDone = prep.filter(isTaskDone).length;
+    const tomorrowMorning = tasksFor(tomorrowKey).filter(x => x.when === 'morning');
+    const prepSection = prep.length || tomorrowMorning.length ? `
+      <section class="section prep-card">
+        <div class="section-head"><h2 class="h3">Today's prep</h2>${prep.length ? `<span class="sub mono" style="font-size:var(--t-xs)">${prepDone}/${prep.length} done</span>` : ''}</div>
+        ${prep.length ? `<div class="task-list">${prep.map(x => taskRow(x)).join('')}</div>` : '<p class="sub" style="font-size:var(--t-sm)">Nothing to prep today.</p>'}
+        ${tomorrowMorning.map(x => `<p class="heads-up"><span class="task-when">Tomorrow morning</span>${esc(x.text)}</p>`).join('')}
+        ${prep.some(x => x.kind === 'thaw') ? defrostTip() : ''}
+      </section>` : '';
 
     return `
       <div class="page-head">
         <span class="eyebrow">${greet}</span>
         <h1 class="h1">What's for dinner?</h1>
       </div>
-      ${state.sample ? `
-        <div class="callout">
-          <div class="grow"><strong>This is a sample week</strong><span class="sub">Poke around, then clear it when you're ready to plan your own.</span></div>
-          <button class="btn btn-sm" type="button" data-action="start-fresh">Start fresh</button>
-        </div>` : ''}
       ${hero}
+      ${prepSection}
       <button class="next-up" type="button" data-action="${tomorrow ? 'open-day' : 'pick'}" data-key="${tomorrowKey}">
         ${plate(tomorrow && tomorrow.meal, 'sm')}
         <span class="grow">
@@ -416,6 +480,7 @@
     const pending = keys.filter(k => k >= todayKey && isPending(k)).length;
     const openNights = keys.filter((k, i) => k >= todayKey && !entries[i]).length;
     const label = ui.weekOffset === 0 ? 'This week' : ui.weekOffset === 1 ? 'Next week' : ui.weekOffset === -1 ? 'Last week' : 'Week of';
+    const source = (SEED.planPackages || []).find(p => keys[0] <= p.end && keys[6] >= p.start);
 
     return `
       <div class="page-head">
@@ -429,12 +494,18 @@
       </div>
       <div class="plan-meter">
         <div class="meter" aria-hidden="true">${entries.map(e => `<span class="${e ? (e.cooked ? 'done' : 'on') : ''}"></span>`).join('')}</div>
-        <div class="meter-label"><span>${planned} of 7 dinners planned</span><span class="mono">${fmtDuration(minutes)} cooking</span></div>
+        <div class="meter-label"><span>${planned} of 7 dinners planned</span><span class="mono">${fmtDuration(minutes)} hands-on</span></div>
       </div>
       <div class="btn-row">
         <button class="btn" type="button" data-action="autofill" ${openNights ? '' : 'disabled'}>${ICON.wand}Fill open nights</button>
         <button class="btn ${pending ? 'btn-primary' : ''}" type="button" data-action="build-week" ${pending ? '' : 'disabled'}>${ICON.cart}${pending ? `Add ${plural(pending, 'dinner')} to list` : 'List is up to date'}</button>
       </div>
+      ${source ? `
+        <a class="source-card" href="${esc(source.pdf)}" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg>
+          <span class="grow"><strong>${esc(source.title)}</strong><span class="sub">Open the original PDF: recipes, defrost schedule, and list</span></span>
+          ${ICON.chev}
+        </a>` : ''}
       <div class="day-list">
         ${days.map((d, i) => {
           const k = keys[i];
@@ -447,7 +518,8 @@
                 ${e.cooked ? `<span class="done-dot" aria-label="Cooked">${ICON.check}</span>` : ICON.chev}
               </button>`
             : `<button class="day-card empty" type="button" data-action="pick" data-key="${k}">${ICON.plus}Plan dinner</button>`;
-          return `<div class="day-row ${cls}"><div class="day-date">${DOW[d.getDay()]}<b>${d.getDate()}</b></div>${card}</div>`;
+          const tasks = tasksFor(k);
+          return `<div class="day-row ${cls}"><div class="day-date">${DOW[d.getDay()]}<b>${d.getDate()}</b></div><div class="day-main">${card}${tasks.length ? `<div class="task-list compact">${tasks.map(x => taskRow(x)).join('')}</div>` : ''}</div></div>`;
         }).join('')}
       </div>
       ${ui.weekOffset !== 0 ? '<button class="btn btn-ghost" type="button" data-action="week-today">Back to this week</button>' : ''}
@@ -712,8 +784,26 @@
         <div class="btn-row">
           ${e.meal.special ? '' : `<button class="btn" type="button" data-action="open-meal" data-id="${e.meal.id}">${ICON.book}Recipe and ingredients</button>`}
           <button class="btn btn-danger" type="button" data-action="clear-day" data-key="${key}">${ICON.trash}Clear night</button>
-        </div>`;
+        </div>
+        ${prepSectionHTML(key)}`;
     });
+  }
+
+  function prepSectionHTML(key) {
+    const tasks = tasksFor(key);
+    return `
+      <section class="section">
+        <div class="section-head"><h3 class="h3">Prep for this day</h3><span class="sub" style="font-size:var(--t-xs)">Defrost reminders are automatic</span></div>
+        ${tasks.length ? `<div class="task-list">${tasks.map(x => taskRow(x, { removable: true })).join('')}</div>` : '<p class="sub" style="font-size:var(--t-sm)">Nothing to prep this day.</p>'}
+        <form class="task-form" id="task-form" data-key="${key}" autocomplete="off">
+          <input class="field" id="task-text" maxlength="80" placeholder="Add a reminder" aria-label="New prep reminder">
+          <select class="field" id="task-when" aria-label="When">
+            <option value="morning">Morning</option>
+            <option value="evening" selected>Evening</option>
+          </select>
+          <button class="btn btn-primary" type="submit" aria-label="Add reminder">${ICON.plus}</button>
+        </form>
+      </section>`;
   }
 
   /* Picker: choose a meal for a night */
@@ -726,7 +816,7 @@
       const hint = ago == null ? 'Not on the plan lately' : ago === 0 ? 'Same day' : `Had ${plural(ago, 'day')} ago`;
       return `<button class="pick ${current === m.id ? 'is-current' : ''}" type="button" data-action="assign" data-key="${key}" data-id="${m.id}">
         ${plate(m, 'sm')}
-        <span class="grow"><span class="name" style="display:block">${m.fav ? '♥ ' : ''}${esc(m.name)}</span><span class="meta">${m.minutes} min · ${hint}</span></span>
+        <span class="grow"><span class="name" style="display:block">${m.fav ? '♥ ' : ''}${esc(m.name)}</span><span class="meta">${esc(m.handsOn || m.minutes + ' min')} · ${hint}</span></span>
         ${current === m.id ? '<span class="tag">Planned</span>' : ICON.chev}
       </button>`;
     }).join('');
@@ -776,8 +866,10 @@
           ${plate(m, 'xl')}
           <h2 class="h2" id="sheet-title">${esc(m.name)}</h2>
           <div class="tag-row" style="justify-content:center">
-            <span class="tag mono">${m.minutes} min</span>
-            ${m.tags.map(t => `<span class="tag">${esc(tagLabel(t))}</span>`).join('')}
+            <span class="tag mono">${esc(m.handsOn || m.minutes + ' min')} hands-on</span>
+            ${m.appliance ? `<span class="tag">${esc(m.appliance)}</span>` : ''}
+            ${m.serves ? `<span class="tag">Serves ${esc(m.serves)}</span>` : ''}
+            ${m.tags.filter(t => t !== 'quick').map(t => `<span class="tag">${esc(tagLabel(t))}</span>`).join('')}
           </div>
           <span class="sub" style="font-size:var(--t-sm)">${lastKey ? `Last on the plan ${fmtShort(fromKey(lastKey))}` : 'Not on the plan yet'}</span>
         </div>
@@ -804,6 +896,17 @@
             ${m.ingredients.map(i => `<li style="--c:var(--a-${esc(i.aisle || 'other')})"><i class="swatch" title="${esc(aisleLabel(i.aisle))}"></i><span class="nm">${esc(i.name)}</span><span class="q">${esc(i.qty)}</span></li>`).join('') || '<li class="sub">No ingredients yet. Edit the meal to add some.</li>'}
           </ul>
         </section>
+        ${m.steps.length ? `
+          <section class="section">
+            <div class="section-head"><h3 class="h3">Steps</h3><span class="sub mono" style="font-size:var(--t-xs)">${m.steps.length}</span></div>
+            <ol class="steps">${m.steps.map(st => `<li>${esc(st)}</li>`).join('')}</ol>
+          </section>` : ''}
+        ${m.thaw || m.morning ? `
+          <div class="prep-box">
+            <b>Prep ahead</b>
+            ${m.thaw ? `<p>Move ${esc(m.thaw)} from the freezer to the fridge ${Number(m.thawLead) === 1 || !m.thawLead ? 'the night before' : `${Number(m.thawLead)} nights before`}. Forkcast reminds you.</p>` : ''}
+            ${m.morning ? `<p>Morning of: ${esc(m.morning)}</p>` : ''}
+          </div>` : ''}
         ${m.notes ? `<div class="notes"><b>Kitchen notes</b>${esc(m.notes)}</div>` : ''}
         <div class="btn-row">
           <button class="btn" type="button" data-action="edit-meal" data-id="${m.id}">${ICON.edit}Edit</button>
@@ -830,11 +933,17 @@
       tags: m ? m.tags.slice() : [],
       name: m ? m.name : '',
       minutes: m ? m.minutes : 30,
-      ingredients: m ? m.ingredients.map(i => `${i.qty ? i.qty + ' ' : ''}${i.name}`).join('\n') : '',
+      ingredients: m ? m.ingredients.map(ingLine).join('\n') : '',
+      steps: m ? m.steps.join('\n') : '',
+      thaw: m ? (m.thaw || '') : '',
+      thawLead: m ? (Number(m.thawLead) || 1) : 1,
+      morning: m ? (m.morning || '') : '',
       notes: m ? (m.notes || '') : ''
     };
     openSheet(editorHTML);
   }
+
+  const ingLine = i => `${i.qty ? i.qty + ' ' : ''}${i.name}`;
 
   function readDraftFields() {
     const f = id => $(id);
@@ -843,6 +952,10 @@
     draft.minutes = f('#f-min').value;
     draft.ingredients = f('#f-ing').value;
     draft.notes = f('#f-notes').value;
+    draft.steps = f('#f-steps').value;
+    draft.thaw = f('#f-thaw').value;
+    draft.thawLead = Number(f('#f-lead').value) || 1;
+    draft.morning = f('#f-morning').value;
   }
 
   function editorHTML() {
@@ -864,6 +977,20 @@
         <label for="f-ing">Ingredients <span class="hint">One per line, amount first: "2 lb chicken thighs". Aisles are sorted for you.</span>
           <textarea class="field" id="f-ing" rows="7" placeholder="2 lb chicken thighs&#10;1 bag baby spinach&#10;1 jar salsa">${esc(draft.ingredients)}</textarea>
         </label>
+        <label for="f-steps">Steps <span class="hint">One step per line</span>
+          <textarea class="field" id="f-steps" rows="5" placeholder="Air fry at 400°F for 10 minutes">${esc(draft.steps)}</textarea>
+        </label>
+        <div class="label">Defrost reminder <span class="hint">What to move from the freezer, and how many nights ahead</span>
+          <div class="task-form">
+            <input class="field" id="f-thaw" maxlength="60" placeholder="1.5 lb steak" value="${esc(draft.thaw)}" aria-label="What to defrost">
+            <select class="field" id="f-lead" aria-label="Nights ahead">
+              ${[1, 2, 3].map(n => `<option value="${n}" ${draft.thawLead === n ? 'selected' : ''}>${n === 1 ? 'Night before' : `${n} nights before`}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <label for="f-morning">Morning-of task <span class="hint">Like: thighs and sauce in the crockpot</span>
+          <input class="field" id="f-morning" maxlength="80" value="${esc(draft.morning)}">
+        </label>
         <label for="f-notes">Kitchen notes <span class="hint">Temps, shortcuts, how the kids like it</span>
           <textarea class="field" id="f-notes" rows="3" style="min-height:90px">${esc(draft.notes)}</textarea>
         </label>
@@ -880,12 +1007,23 @@
     if (!name) { $('#f-name').focus(); return; }
     const old = draft.id ? mealById(draft.id) : null;
     const prevAisles = new Map(old ? old.ingredients.map(i => [normName(i.name), i.aisle]) : []);
-    const ingredients = draft.ingredients.split('\n').map(parseLine).filter(Boolean)
-      .map(i => ({ qty: i.qty, name: i.name.charAt(0).toUpperCase() + i.name.slice(1), aisle: prevAisles.get(normName(i.name)) || guessAisle(i.name) }));
+    const unchanged = new Map(old ? old.ingredients.map(i => [ingLine(i).trim(), i]) : []);
+    const ingredients = draft.ingredients.split('\n').map(line => {
+      if (unchanged.has(line.trim())) return { ...unchanged.get(line.trim()) };
+      const i = parseLine(line);
+      return i && { qty: i.qty, name: i.name.charAt(0).toUpperCase() + i.name.slice(1), aisle: prevAisles.get(normName(i.name)) || guessAisle(i.name) };
+    }).filter(Boolean);
     const minutes = Math.max(0, Math.min(600, parseInt(draft.minutes, 10) || 0));
     const tags = draft.tags.filter(t => t !== 'quick');
     if (minutes && minutes <= 30) tags.unshift('quick');
-    const meal = { id: draft.id || 'm-' + uid(), name, emoji: draft.emoji, minutes, tags, ingredients, notes: draft.notes.trim(), fav: old ? old.fav : false };
+    const meal = {
+      ...(old || {}),
+      id: draft.id || 'm-' + uid(), name, emoji: draft.emoji, minutes, tags, ingredients,
+      steps: draft.steps.split('\n').map(x => x.trim()).filter(Boolean),
+      thaw: draft.thaw.trim(), thawLead: draft.thawLead, morning: draft.morning.trim(),
+      notes: draft.notes.trim(), fav: old ? old.fav : false
+    };
+    if (old && old.minutes !== minutes) delete meal.handsOn;
     change(old ? `Saved ${name}` : `${name} added to your meals`, () => {
       if (old) state.meals[state.meals.indexOf(old)] = meal; else state.meals.push(meal);
     }, { undoable: !old });
@@ -1006,7 +1144,7 @@
             <button class="btn btn-sm btn-danger" type="button" data-action="confirm-reset">${ICON.trash}Clear plan and list</button>
           </div>
           <div class="confirm-box" ${confirmReset ? '' : 'hidden'}>
-            <strong>Clear every planned night and the whole shopping list?</strong>
+            <strong>Clear every planned night, prep reminder, and the whole shopping list?</strong>
             <span class="sub" style="font-size:var(--t-sm)">Your meal library stays.</span>
             <div class="btn-row">
               <button class="btn btn-sm" type="button" data-action="cancel-reset">Keep everything</button>
@@ -1149,7 +1287,6 @@
       toast('Dinner is served. Marked as cooked.');
     },
     'uncook': el => { const k = el.dataset.key; change(null, () => { if (state.plan[k]) state.plan[k].cooked = false; }); refreshSheet(); },
-    'start-fresh': () => change('Sample week cleared. The plan is yours.', () => { state.plan = {}; state.groceries = []; state.built = []; state.sample = false; }),
 
     'week-prev': () => { ui.weekOffset--; render(); },
     'week-next': () => { ui.weekOffset++; render(); },
@@ -1185,6 +1322,20 @@
       toast(`Added ingredients for ${plural(n, 'dinner')}`, () => { state = normalize(JSON.parse(snap)); save(); render(); });
     },
 
+    'toggle-task': el => {
+      const id = el.dataset.id;
+      if (state.taskDone[id]) delete state.taskDone[id]; else state.taskDone[id] = true;
+      save();
+      const row = el.closest('.task');
+      row.classList.toggle('is-done', !!state.taskDone[id]);
+      row.classList.remove('pop'); void row.offsetWidth; row.classList.add('pop');
+      el.setAttribute('aria-pressed', !!state.taskDone[id]);
+      setTimeout(() => { render(); refreshSheet(); }, reduceMotion() ? 0 : 450);
+    },
+    'del-task': el => {
+      change('Reminder removed', () => { state.tasks = state.tasks.filter(t => t.id !== el.dataset.id); });
+      refreshSheet();
+    },
     'toggle-item': el => {
       const g = state.groceries.find(x => x.id === el.dataset.id);
       if (!g) return;
@@ -1297,7 +1448,7 @@
     'do-reset': () => {
       confirmReset = false;
       closeSheet();
-      change('Plan and list cleared', () => { state.plan = {}; state.groceries = []; state.built = []; state.sample = false; });
+      change('Plan and list cleared', () => { state.plan = {}; state.groceries = []; state.built = []; state.tasks = []; state.taskDone = {}; state.sample = false; });
     }
   };
 
@@ -1329,6 +1480,13 @@
       });
       const again = $('#add-item');
       if (again) again.focus();
+    } else if (e.target.id === 'task-form') {
+      const text = $('#task-text').value.trim();
+      if (!text) return;
+      change('Reminder added', () => {
+        state.tasks.push({ id: 't-' + uid(), date: e.target.dataset.key, when: $('#task-when').value, text });
+      });
+      refreshSheet();
     } else if (e.target.id === 'meal-form') {
       saveDraft();
     }
@@ -1358,12 +1516,10 @@
   }
 
   /* ---------- Boot ---------- */
-  state = load();
-  if (!state) {
-    state = freshState();
-    seedSampleWeek();
-    save();
-  }
+  state = load() || freshState();
+  applyImports();
+  state = normalize(state);
+  save();
   const start = (location.hash || '').replace('#', '');
   if (VIEWS[start]) ui.tab = start;
   applyTheme();

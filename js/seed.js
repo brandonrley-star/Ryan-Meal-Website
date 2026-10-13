@@ -150,7 +150,175 @@
     }
   ];
 
+  /* From "Weekly Dinner Plan" (PDF, Oct 12, 2026). Meat comes from the ButcherBox freezer.
+     thaw + thawLead: the evening that many days before dinner, move the meat to the fridge.
+     morning: a task for the morning of that dinner. minutes = hands-on time on the night. */
+  const planMeals = [
+    {
+      id: 'm-tacobowls', name: 'Ground Beef Taco Bowls', emoji: '🌯', minutes: 10, appliance: 'Reheat',
+      tags: ['quick', 'makeahead', 'kid', 'protein'],
+      thaw: '1.5 lb ground beef', thawLead: 2,
+      ingredients: [
+        ['1.5 lb', 'Ground beef', 'freezer'], ['1 packet', 'Taco seasoning', 'pantry'], ['1 cup dry', 'Rice', 'pantry'],
+        ['1 bag', 'Corn', 'frozen'], ['1 can', 'Black beans', 'pantry'], ['', 'Shredded cheese', 'dairy'],
+        ['', 'Sour cream', 'dairy'], ['optional', 'Avocado', 'produce']
+      ],
+      notes: 'Your usual version. Brown the beef with taco seasoning on Sunday and reheat on the night. Cooked taco beef and rice keep 3 to 4 days in the fridge, so the Sunday batch lasts through Tuesday.'
+    },
+    {
+      id: 'm-salsachicken', name: 'Salsa Chicken Bowls or Quesadillas', emoji: '🌶️', minutes: 10, appliance: 'Reheat',
+      tags: ['quick', 'makeahead', 'kid', 'protein'],
+      ingredients: [
+        ['1 jar', 'Mild salsa', 'pantry'], ['', 'Flour tortillas', 'bakery'], ['', 'Shredded cheese', 'dairy'], ['1 cup dry', 'Rice', 'pantry']
+      ],
+      notes: 'Your usual version, already made. Serve over rice as bowls or in tortillas as quesadillas. Leftovers make easy lunches.'
+    },
+    {
+      id: 'm-steakbites', name: 'Air Fryer Garlic Butter Steak Bites', emoji: '🥩', minutes: 20, appliance: 'Air fryer', serves: 4,
+      tags: ['quick', 'airfryer', 'protein'],
+      thaw: '1.5 lb steak', thawLead: 2, morning: 'Optional: cube and season the steak',
+      ingredients: [
+        ['1.5 lb', 'Sirloin or NY strip', 'freezer'], ['1 tbsp', 'Cooking oil', 'pantry'], ['1 tbsp', 'Worcestershire sauce', 'pantry'],
+        ['1 tsp', 'Garlic powder', 'pantry'], ['1 tsp', 'Salt', 'pantry'], ['½ tsp', 'Black pepper', 'pantry'],
+        ['1 tbsp', 'Butter', 'dairy'], ['12 oz', 'Green beans', 'frozen']
+      ],
+      steps: [
+        'Cut the steak into 1-inch cubes. Toss with the oil, Worcestershire, garlic powder, salt, and pepper. This can be done in the morning.',
+        'Air fry the green beans at 400°F for 8 minutes, shaking once. Set aside.',
+        'Air fry the steak in a single layer at 400°F for 8 to 10 minutes, shaking halfway. Use 10 minutes for more done.',
+        'Toss with the melted butter and serve.'
+      ],
+      notes: 'Serves 4, about 20 minutes.'
+    },
+    {
+      id: 'm-honeygarlic', name: 'Crockpot Honey Garlic Chicken', emoji: '🍯', minutes: 20, handsOn: '5 min AM, 15 min PM', appliance: 'Crockpot', serves: 4,
+      tags: ['quick', 'slow', 'kid', 'protein'],
+      thaw: '2 lb chicken thighs', thawLead: 2, morning: 'Thighs and sauce in the crockpot, low 5 to 6 hrs',
+      ingredients: [
+        ['2 lb', 'Chicken thighs, boneless skinless', 'freezer'], ['⅓ cup', 'Honey', 'pantry'], ['⅓ cup', 'Low-sodium soy sauce', 'pantry'],
+        ['2 tbsp', 'Ketchup', 'pantry'], ['4 cloves', 'Garlic', 'produce'], ['1 tbsp', 'Cornstarch', 'pantry'],
+        ['12 oz', 'Broccoli florets', 'frozen'], ['1½ cups dry', 'Rice', 'pantry']
+      ],
+      steps: [
+        'Sunday: whisk the honey, soy sauce, ketchup, and minced garlic (or 1 tsp garlic powder) in a jar and refrigerate.',
+        'Thursday morning: put the thawed chicken in the crockpot and pour the sauce over. Cook on low 5 to 6 hours or high 3 hours.',
+        '30 minutes before dinner: cook the rice and microwave the broccoli.',
+        'Remove the chicken and shred it. Stir 1 tbsp cornstarch mixed with 2 tbsp cold water into the sauce and cook on high 10 to 15 minutes until glossy.',
+        'Return the chicken to the sauce and serve over rice with broccoli.'
+      ],
+      notes: 'Serves 4. Never put frozen meat straight into the crockpot. Leftovers make easy lunches.'
+    },
+    {
+      id: 'm-peanutnoodles', name: 'Peanut Noodles with Chicken & Veggies', emoji: '🍜', minutes: 20, appliance: 'Stovetop', serves: 4,
+      tags: ['quick', 'kid', 'protein'],
+      thaw: '1 lb chicken', thawLead: 1,
+      ingredients: [
+        ['12 oz', 'Spaghetti or linguine', 'pantry'], ['1 lb', 'Chicken breasts or thighs', 'freezer'], ['1 tbsp', 'Cooking oil', 'pantry'],
+        ['16 oz', 'Stir-fry vegetable blend', 'frozen'], ['¾ cup', 'Peanut sauce (premade)', 'pantry']
+      ],
+      steps: [
+        'Boil the pasta, adding the frozen veggies for the last 3 minutes. Save ½ cup pasta water, then drain.',
+        'Meanwhile, cut the chicken into bite-size pieces and cook in the oil over medium-high heat for 6 to 8 minutes, or air fry at 400°F for 10 to 12 minutes.',
+        'Toss everything with the peanut sauce, adding pasta water to loosen it.'
+      ],
+      notes: 'Serves 4, about 20 minutes. Cut the noodles short for the toddler.'
+    },
+    // Ideas for future weeks
+    {
+      id: 'm-pestosalad', name: 'Pesto Pasta Salad', emoji: '🌿', minutes: 20, appliance: 'Stovetop',
+      tags: ['try', 'makeahead', 'kid'],
+      ingredients: [['1 lb', 'Pasta', 'pantry'], ['1 jar', 'Pesto', 'pantry'], ['1 tub', 'Mozzarella pearls', 'dairy'], ['1 pint', 'Cherry tomatoes', 'produce']],
+      notes: 'Make it the night before. Skip the feta and lemon. Add mozzarella pearls, cherry tomatoes, and leftover chicken.'
+    },
+    {
+      id: 'm-beefchili', name: 'Mild Beef Chili', emoji: '🫘', minutes: 15, appliance: 'Crockpot or Instant Pot',
+      tags: ['try', 'slow', 'instantpot', 'freezer', 'protein'],
+      thaw: '1.5 lb ground beef', thawLead: 1,
+      ingredients: [['1.5 lb', 'Ground beef', 'freezer'], ['2 cans', 'Beans', 'pantry'], ['1 jar', 'Mild chili powder', 'pantry']],
+      notes: 'Ground beef, beans, and mild chili powder. Freeze half for a later week.'
+    },
+    {
+      id: 'm-bolognese', name: 'Spaghetti Bolognese', emoji: '🍝', minutes: 20, appliance: 'Crockpot',
+      tags: ['try', 'slow', 'kid'],
+      thaw: '1 lb ground beef', thawLead: 1,
+      ingredients: [['1 lb', 'Ground beef', 'freezer'], ['1 lb', 'Spaghetti', 'pantry'], ['1 jar', 'Marinara sauce', 'pantry'], ['2', 'Carrots', 'produce'], ['1', 'Zucchini', 'produce']],
+      notes: 'Grate carrots and zucchini into the sauce. Toddler-friendly pasta night.'
+    },
+    {
+      id: 'm-vegcurry', name: 'Vegetarian Curry', emoji: '🍛', minutes: 15, appliance: 'Instant Pot',
+      tags: ['try', 'instantpot', 'kid'],
+      ingredients: [['2 cans', 'Chickpeas', 'pantry'], ['2', 'Sweet potatoes', 'produce'], ['1 can', 'Coconut milk', 'pantry'], ['1 jar', 'Mild curry powder', 'pantry'], ['1 bag', 'Frozen mixed veggies', 'frozen'], ['2 cups dry', 'Rice', 'pantry']],
+      notes: 'Chickpeas, sweet potato, and coconut milk with mild curry powder. Use frozen veggies.'
+    },
+    {
+      id: 'm-tikka', name: 'Chicken Tikka Masala', emoji: '🥘', minutes: 15, appliance: 'Crockpot or Instant Pot',
+      tags: ['try', 'slow', 'instantpot', 'protein'],
+      thaw: '2 lb chicken thighs', thawLead: 1,
+      ingredients: [['2 lb', 'Chicken thighs', 'freezer'], ['1 jar', 'Mild tikka masala sauce', 'pantry'], ['1 small carton', 'Heavy cream', 'dairy'], ['2 cups dry', 'Rice', 'pantry']],
+      notes: 'Chicken thighs in a jarred mild sauce plus a splash of cream. Serve with rice or naan.'
+    }
+  ];
+
+  const toMeal = m => ({
+    ...m,
+    fav: !!m.fav,
+    ingredients: m.ingredients.map(([qty, name, aisle]) => ({ qty, name, aisle }))
+  });
+
   window.FORKCAST_SEED = {
+    // Dated plans loaded once into the app (meals, nights, prep tasks, grocery list)
+    planPackages: [
+      {
+        id: 'weekly-dinner-plan-2026-10-12',
+        title: 'Weekly Dinner Plan',
+        pdf: 'plans/weekly-dinner-plan-2026-10-12.pdf',
+        start: '2026-10-10',
+        end: '2026-10-16',
+        meals: planMeals.map(toMeal),
+        plan: {
+          '2026-10-12': 'm-tacobowls',
+          '2026-10-13': 'm-salsachicken',
+          '2026-10-14': 'm-steakbites',
+          '2026-10-15': 'm-honeygarlic',
+          '2026-10-16': 'm-peanutnoodles'
+        },
+        tasks: [
+          { date: '2026-10-11', when: 'evening', text: 'Brown the ground beef with taco seasoning' },
+          { date: '2026-10-11', when: 'evening', text: 'Cook 2 cups dry rice (covers Mon and Tue)' },
+          { date: '2026-10-11', when: 'evening', text: 'Mix the honey garlic sauce in a jar' }
+        ],
+        // [name, qty, aisle, for meal]
+        groceries: [
+          ['Ground beef', '1.5 lb', 'freezer', 'm-tacobowls'],
+          ['Chicken thighs, boneless skinless', '2 lb', 'freezer', 'm-honeygarlic'],
+          ['Sirloin or NY strip', '1.5 lb', 'freezer', 'm-steakbites'],
+          ['Chicken breasts or thighs', '1 lb', 'freezer', 'm-peanutnoodles'],
+          ['Broccoli florets', '12 oz', 'frozen', 'm-honeygarlic'],
+          ['Green beans', '12 oz', 'frozen', 'm-steakbites'],
+          ['Stir-fry vegetable blend', '16 oz', 'frozen', 'm-peanutnoodles'],
+          ['Corn', '1 bag', 'frozen', 'm-tacobowls'],
+          ['Rice', '', 'pantry', ''],
+          ['Spaghetti or linguine', '12 oz', 'pantry', 'm-peanutnoodles'],
+          ['Taco seasoning', '1 packet', 'pantry', 'm-tacobowls'],
+          ['Mild salsa', '1 jar', 'pantry', 'm-salsachicken'],
+          ['Black beans', '1 can', 'pantry', 'm-tacobowls'],
+          ['Low-sodium soy sauce', '', 'pantry', 'm-honeygarlic'],
+          ['Honey', '', 'pantry', 'm-honeygarlic'],
+          ['Worcestershire sauce', '', 'pantry', 'm-steakbites'],
+          ['Ketchup', '', 'pantry', 'm-honeygarlic'],
+          ['Cornstarch', '', 'pantry', 'm-honeygarlic'],
+          ['Garlic powder', '', 'pantry', 'm-steakbites'],
+          ['Cooking oil', '', 'pantry', ''],
+          ['Shredded cheese', '', 'dairy', ''],
+          ['Sour cream', '', 'dairy', 'm-tacobowls'],
+          ['Butter', '', 'dairy', 'm-steakbites'],
+          ['Flour tortillas', '', 'bakery', 'm-salsachicken'],
+          ['Garlic', '1 head', 'produce', 'm-honeygarlic'],
+          ['Avocado', 'optional', 'produce', 'm-tacobowls']
+        ]
+      }
+    ],
+    defrostTip: 'Forgot to defrost? Put the sealed ButcherBox pack in a bowl of cold water for 30 to 60 minutes, changing the water every 30 minutes. Never put frozen meat straight into the crockpot.',
     meals: meals.map(m => ({
       ...m,
       fav: !!m.fav,
@@ -164,6 +332,7 @@
       ['Puffs', 'baby'], ['Paper towels', 'household'], ['Dish soap', 'household']
     ],
     aisles: [
+      { id: 'freezer', label: 'From the freezer (ButcherBox)' },
       { id: 'produce', label: 'Produce' },
       { id: 'meat', label: 'Meat & Seafood' },
       { id: 'dairy', label: 'Dairy & Eggs' },
@@ -178,10 +347,14 @@
       { id: 'quick', label: 'Under 30 min' },
       { id: 'kid', label: 'Toddler-approved' },
       { id: 'protein', label: 'High protein' },
-      { id: 'slow', label: 'Slow cooker' },
+      { id: 'slow', label: 'Crockpot' },
+      { id: 'airfryer', label: 'Air fryer' },
+      { id: 'instantpot', label: 'Instant Pot' },
+      { id: 'makeahead', label: 'Make-ahead' },
       { id: 'sheetpan', label: 'Sheet pan' },
       { id: 'grill', label: 'Grill' },
-      { id: 'freezer', label: 'Freezer-friendly' }
+      { id: 'freezer', label: 'Freezer-friendly' },
+      { id: 'try', label: 'To try' }
     ],
     emojis: ['🌮', '🐟', '🍝', '🥩', '🍲', '🍕', '🍗', '🍤', '🍔', '🥞', '🥗', '🥦', '🥪', '🧀', '🥣', '🐠',
       '🌯', '🍛', '🍜', '🥘', '🍣', '🌭', '🥙', '🍖', '🫕', '🥟', '🍱', '🥓', '🍳', '🌶️', '🥔', '🍚']

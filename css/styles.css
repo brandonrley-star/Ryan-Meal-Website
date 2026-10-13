@@ -27,6 +27,7 @@
   --plate-rim: #d9cad3;
 
   /* Aisle colors */
+  --a-freezer: #a9c4ff;
   --a-produce: #52c582;
   --a-meat: #ff6e50;
   --a-dairy: #8ab8ff;
@@ -85,6 +86,7 @@
     --shadow: 0 18px 40px -22px rgba(60, 20, 50, 0.35);
     --plate: #ffffff;
     --plate-rim: #e7dde6;
+    --a-freezer: #4b63b8;
     --a-produce: #1d8a50;
     --a-meat: #d9401f;
     --a-dairy: #2f6fd0;
@@ -120,6 +122,7 @@
   --shadow: 0 18px 40px -22px rgba(60, 20, 50, 0.35);
   --plate: #ffffff;
   --plate-rim: #e7dde6;
+  --a-freezer: #4b63b8;
   --a-produce: #1d8a50;
   --a-meat: #d9401f;
   --a-dairy: #2f6fd0;
@@ -457,6 +460,8 @@ p { margin: 0; }
 .day-row.is-today .day-date { background: var(--tomato); color: var(--on-accent); }
 .day-row.is-today .day-date b { color: var(--on-accent); }
 .day-row.is-past { opacity: 0.6; }
+.day-row .day-date { align-self: start; min-height: 72px; }
+.day-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .day-card {
   display: flex; align-items: center; gap: 12px;
   min-height: 72px;
@@ -494,6 +499,53 @@ p { margin: 0; }
 .callout .grow { flex: 1; min-width: 0; }
 .callout strong { display: block; }
 .callout .sub { font-size: var(--t-sm); }
+
+/* ---------- Prep and defrost reminders ---------- */
+.prep-card { padding: 16px; border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line); }
+.task-list { display: flex; flex-direction: column; gap: 2px; }
+.task { display: flex; align-items: center; gap: 6px; }
+.task-main { display: flex; align-items: flex-start; gap: 12px; flex: 1; min-width: 0; padding: 8px 0; text-align: left; }
+.task .check { margin-top: 1px; }
+.task-text { display: flex; flex-direction: column; min-width: 0; }
+.task-text .txt { font-weight: 600; overflow-wrap: anywhere; }
+.task-when { font-size: var(--t-xs); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--saffron); }
+.task.kind-thaw .task-when { color: var(--a-freezer); }
+.task-sub { font-size: var(--t-sm); color: var(--muted); }
+.task.is-done .check { background: var(--basil); border-color: var(--basil); }
+.task.is-done .check path { stroke-dashoffset: 0; }
+.task.is-done .txt { text-decoration: line-through; color: var(--faint); }
+.task.pop .check { animation: pop 0.35s; }
+.task-list.compact { padding: 2px 12px; border-radius: var(--r-md); background: var(--surface-2); }
+.task-list.compact .task-main { padding: 6px 0; gap: 10px; }
+.task-list.compact .check { width: 20px; height: 20px; }
+.task-list.compact .txt { font-size: var(--t-sm); }
+.task-list.compact .task-sub { font-size: var(--t-xs); }
+.heads-up { display: flex; flex-direction: column; padding: 10px 12px; border-radius: var(--r-sm); background: var(--saffron-soft); font-size: var(--t-sm); font-weight: 600; }
+.tip-box { border-radius: var(--r-sm); background: var(--surface-2); padding: 10px 12px; font-size: var(--t-sm); color: var(--muted); }
+.tip-box summary { cursor: pointer; font-weight: 650; color: var(--fg); }
+.tip-box p { margin-top: 6px; }
+.task-form { display: flex; gap: 8px; }
+.task-form .field:first-child { flex: 1; min-width: 0; }
+.task-form select.field { width: auto; flex: none; padding: 0 10px; }
+.task-form .btn { flex: none; width: 48px; padding: 0; border-radius: 14px; }
+.task-form .btn svg { width: 22px; height: 22px; }
+.source-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: inherit;
+  text-decoration: none;
+}
+.source-card > svg:first-child { width: 26px; height: 26px; flex: none; fill: none; stroke: var(--tomato); stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+.source-card .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.source-card .sub { font-size: var(--t-sm); }
+.steps { margin: 0; padding: 0; list-style: none; counter-reset: step; display: flex; flex-direction: column; gap: 12px; }
+.steps li { counter-increment: step; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; line-height: 1.5; }
+.steps li::before { content: counter(step); width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--tomato-soft); color: var(--tomato); font-family: var(--f-display); font-weight: 800; font-size: var(--t-sm); }
+.prep-box { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: var(--r-md); background: var(--surface-2); border-left: 3px solid var(--a-freezer); }
+.prep-box b { font-size: var(--t-xs); text-transform: uppercase; letter-spacing: 0.12em; color: var(--a-freezer); }
 
 /* ---------- Grocery ---------- */
 .add-form { display: flex; gap: 8px; }
@@ -570,7 +622,7 @@ textarea.field { padding: 12px 16px; min-height: 120px; resize: vertical; line-h
 .item-name { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px; }
 .item-name .txt { font-family: var(--f-body); font-weight: 550; overflow-wrap: anywhere; }
 .item-name .lead { flex: 1; min-width: 12px; border-bottom: 1.5px dotted var(--line-strong); transform: translateY(-4px); }
-.item-qty { color: var(--muted); font-size: var(--t-sm); white-space: nowrap; max-width: 40%; overflow: hidden; text-overflow: ellipsis; }
+.item-qty { flex: none; color: var(--muted); font-size: var(--t-sm); white-space: nowrap; max-width: 45%; overflow: hidden; text-overflow: ellipsis; }
 .item-from { font-size: 13px; line-height: 1; }
 .item.is-done .txt { text-decoration: line-through; text-decoration-thickness: 2px; color: var(--faint); }
 .item.is-done .item-qty { color: var(--faint); }
